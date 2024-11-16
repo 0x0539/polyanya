@@ -158,12 +158,14 @@ impl<'m> SearchInstance<'m> {
             #[cfg(feature = "detailed-layers")]
             min_layer_cost: 1.0,
         };
+        // Add the starting polygon to the root history (with val 0.0).
         search_instance.root_history.insert(Root(from.0), 0.0);
 
         let empty_node = SearchNode {
             path: vec![],
             #[cfg(feature = "detailed-layers")]
             path_with_layers: vec![],
+            // The root of the entire search.
             root: from.0,
             interval: (Vec2::new(0.0, 0.0), Vec2::new(0.0, 0.0)),
             edge: (0, 0),
@@ -176,17 +178,21 @@ impl<'m> SearchInstance<'m> {
 
         let from_layer = &mesh.layers[from.1.layer() as usize];
 
+        // Iterate all edges of the starting polygon.
         for edge in starting_polygon.edges_index() {
+            // Get the start vertex of the edge
             let start = if let Some(v) = from_layer.vertices.get(edge[0] as usize) {
                 v
             } else {
                 continue;
             };
+            // Get the end vertex of the edge
             let end = if let Some(v) = from_layer.vertices.get(edge[1] as usize) {
                 v
             } else {
                 continue;
             };
+            // Get the polygon on the other side of the edge.
             let other_side = start
                 .polygons
                 .iter()
@@ -194,10 +200,13 @@ impl<'m> SearchInstance<'m> {
                 .find(|poly| *poly != &from.1)
                 .unwrap_or(&u32::MAX);
 
+            // If it's "blocked" then continue.
             if search_instance.blocked_layers.contains(&other_side.layer()) {
                 continue;
             }
 
+            // If the other side is the target polygon or the other side is on any valid layer then add it to
+            // the search.
             if other_side == &to.1
                 || (other_side != &u32::MAX
                     && !search_instance.mesh.layers[other_side.layer() as usize]
@@ -207,10 +216,16 @@ impl<'m> SearchInstance<'m> {
                         .is_one_way)
             {
                 search_instance.add_node(
+                    // the root (using the same value as the search root triggers a special case
+                    // where distance is 0 and path is empty)
                     from.0,
+                    // the polygon on the other side 
                     *other_side,
+                    // The start of the edge being crossed
                     (start.coords + from_layer.offset, edge[0]),
+                    // The end of the edge being crossed
                     (end.coords + from_layer.offset, edge[1]),
+                    // The starting node
                     &empty_node,
                 );
             }
@@ -220,6 +235,7 @@ impl<'m> SearchInstance<'m> {
     }
 
     pub(crate) fn next(&mut self) -> InstanceStep {
+        // Get the next node from the priority queue.
         if let Some(next) = self.pop_node() {
             #[cfg(feature = "verbose")]
             println!("popped off: {} ({})", next, next.polygon_from);
@@ -228,6 +244,7 @@ impl<'m> SearchInstance<'m> {
                 self.popped += 1;
             }
 
+            // If the root of
             if let Some(o) = self.root_history.get(&Root(next.root)) {
                 // TODO: revisit this for layers with different height at the same coordinates
                 if o < &next.distance_start_to_root {
@@ -558,6 +575,8 @@ impl<'m> SearchInstance<'m> {
         let mut path = node.path.clone();
         #[cfg(feature = "detailed-layers")]
         let mut path_with_layers = node.path_with_layers.clone();
+
+        // If the new node's root is different then we add it to the path and f
         if root != node.root {
             path.push(root);
             #[cfg(feature = "detailed-layers")]
@@ -572,6 +591,8 @@ impl<'m> SearchInstance<'m> {
                 new_f += node.root.distance(root * layer.scale) * layer.cost;
             }
         }
+
+        // If the polygon on the other side is on a different layer then add a node to the path.
         #[cfg(feature = "detailed-layers")]
         if other_side.layer() != node.polygon_to.layer() {
             path_with_layers.push((start.0, end.0, other_side.layer()));
@@ -584,14 +605,15 @@ impl<'m> SearchInstance<'m> {
         }
         #[cfg(feature = "detailed-layers")]
         {
-            heuristic_to_end = heuristic(
+            heuristic_to_end = root.distance(self.to) * self.min_layer_cost;
+            /*heuristic_to_end = heuristic(
                 root,
                 self.to,
                 (
                     start.0 * self.mesh.layers[start.1.layer() as usize].scale,
                     end.0 * self.mesh.layers[end.1.layer() as usize].scale,
                 ),
-            ) * self.min_layer_cost;
+            ) * self.min_layer_cost;*/
         }
         if new_f.is_nan() || heuristic_to_end.is_nan() {
             #[cfg(debug_assertions)]
