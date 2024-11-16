@@ -259,6 +259,7 @@ impl<'m> SearchInstance<'m> {
                 }
             }
 
+            self.successors(next);
             if next.polygon_to == self.polygon_to {
                 #[cfg(feature = "stats")]
                 {
@@ -351,7 +352,6 @@ impl<'m> SearchInstance<'m> {
                     path_with_layers,
                 });
             }
-            self.successors(next);
             return InstanceStep::Continue;
         }
         #[cfg(feature = "stats")]
