@@ -328,7 +328,7 @@ impl<'m> SearchInstance<'m> {
                     path_with_layers,
                 });
             }
-            self.successors(next.clone());
+            self.successors(next);
             return InstanceStep::Continue;
         }
         #[cfg(feature = "stats")]
