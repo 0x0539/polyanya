@@ -310,8 +310,8 @@ impl Mesh {
         );
 
         let mut paths: Vec<Path> = vec![];
-        // Limit search to avoid an infinite loop.
-        for _ in 0..self.layers.iter().map(|l| l.polygons.len()).sum::<usize>() * 10 {
+        // Limit search to num_polygons * 100 to avoid an infinite loop.
+        for _ in 0..self.layers.iter().map(|l| l.polygons.len()).sum::<usize>() * 100 {
             let _potential_path = match search_instance.next() {
                 #[cfg(not(feature = "detailed-layers"))]
                 InstanceStep::Found(path) => return Some(path),
@@ -333,6 +333,7 @@ impl Mesh {
         }
         #[cfg(feature = "detailed-layers")]
         paths.sort_by(|p1, p2| p1.length.partial_cmp(&p2.length).unwrap());
+        println!("num paths found: {}", paths.len());
         if paths.is_empty() {
             error!("Search from {from} to {to} failed. Please check the mesh is valid as this should not happen.");
             None
