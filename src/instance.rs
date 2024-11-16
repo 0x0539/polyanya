@@ -259,7 +259,7 @@ impl<'m> SearchInstance<'m> {
                 }
             }
 
-            self.successors(next);
+            self.successors(next.clone());
             if next.polygon_to == self.polygon_to {
                 #[cfg(feature = "stats")]
                 {

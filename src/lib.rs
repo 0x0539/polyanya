@@ -623,7 +623,7 @@ impl Mesh {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 struct SearchNode {
     path: Vec<Vec2>,
     #[cfg(feature = "detailed-layers")]
