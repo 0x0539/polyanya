@@ -334,7 +334,7 @@ impl Mesh {
         #[cfg(feature = "detailed-layers")]
         paths.sort_by(|p1, p2| p1.length.partial_cmp(&p2.length).unwrap());
         if paths.is_empty() {
-            error!("Search from {from} to {to} failed. Please check the mesh is valid as this should not happen.");
+            debug!("Search from {from} to {to} failed. Please check the mesh is valid as this should not happen.");
             None
         } else {
             Some(paths.remove(0))
