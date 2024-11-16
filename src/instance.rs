@@ -552,7 +552,6 @@ impl<'m> SearchInstance<'m> {
         let mut path = node.path.clone();
         #[cfg(feature = "detailed-layers")]
         let mut path_with_layers = node.path_with_layers.clone();
-
         if root != node.root {
             path.push(root);
             #[cfg(feature = "detailed-layers")]
@@ -568,7 +567,6 @@ impl<'m> SearchInstance<'m> {
                     .distance(root * self.mesh.layers[node.polygon_to.layer() as usize].scale);
             }
         }
-
         #[cfg(feature = "detailed-layers")]
         if other_side.layer() != node.polygon_to.layer() {
             path_with_layers.push((start.0, end.0, other_side.layer()));
