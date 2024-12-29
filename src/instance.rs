@@ -83,6 +83,7 @@ pub(crate) struct SearchInstance<'m> {
     pub(crate) debug: bool,
     #[cfg(debug_assertions)]
     pub(crate) fail_fast: i32,
+    pub(crate) min_layer_cost: f32,
 }
 
 pub(crate) enum InstanceStep {
@@ -153,6 +154,7 @@ impl<'m> SearchInstance<'m> {
             debug: false,
             #[cfg(debug_assertions)]
             fail_fast: -1,
+            min_layer_cost: 1.0,
         };
         search_instance.root_history.insert(Root(from.0), 0.0);
 
@@ -318,8 +320,10 @@ impl<'m> SearchInstance<'m> {
                     #[cfg(feature = "detailed-layers")]
                     length: {
                         let a = path_with_layers.iter().fold((0.0, self.from), |acc, p| {
-                            let scale = self.mesh.layers[acc.1 .1 as usize].scale;
-                            let to_point = (acc.1 .0 * scale).distance(p.0 * scale);
+                            let layer = &self.mesh.layers[acc.1 .1 as usize];
+                            let scale = layer.scale;
+                            let cost = layer.cost;
+                            let to_point = (acc.1 .0 * scale).distance(p.0 * scale) * cost;
                             (acc.0 + to_point, *p)
                         });
                         a.0
@@ -562,9 +566,10 @@ impl<'m> SearchInstance<'m> {
             }
             #[cfg(feature = "detailed-layers")]
             {
+                let layer = &self.mesh.layers[node.polygon_to.layer() as usize];
                 new_f += node
                     .root
-                    .distance(root * self.mesh.layers[node.polygon_to.layer() as usize].scale);
+                    .distance(root * layer.scale) * layer.cost;
             }
         }
         #[cfg(feature = "detailed-layers")]
@@ -572,22 +577,25 @@ impl<'m> SearchInstance<'m> {
             path_with_layers.push((start.0, end.0, other_side.layer()));
         }
 
-        let heuristic_to_end: f32;
+        let mut heuristic_to_end: f32;
         #[cfg(not(feature = "detailed-layers"))]
         {
             heuristic_to_end = heuristic(root, self.to, (start.0, end.0));
         }
         #[cfg(feature = "detailed-layers")]
         {
+            let start_layer = &self.mesh.layers[start.1.layer() as usize];
+            let end_layer = &self.mesh.layers[end.1.layer() as usize];
             heuristic_to_end = heuristic(
                 root,
                 self.to,
                 (
-                    start.0 * self.mesh.layers[start.1.layer() as usize].scale,
-                    end.0 * self.mesh.layers[end.1.layer() as usize].scale,
+                    start.0 * start_layer.scale,
+                    end.0 * end_layer.scale,
                 ),
             );
         }
+        heuristic_to_end *= self.min_layer_cost;
         if new_f.is_nan() || heuristic_to_end.is_nan() {
             #[cfg(debug_assertions)]
             if self.debug {
